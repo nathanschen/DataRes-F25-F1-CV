@@ -23,3 +23,7 @@ cd backend
 docker build --no-cache -t f1-backend .
 docker run -p 8000:8000 f1-backend
 
+# run frontend:
+cd frontend
+npm install
+npm run dev
