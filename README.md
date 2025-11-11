@@ -17,3 +17,9 @@ Heatmap of most common angles across each team
 Maybe also # minutes each team is shown
 
 
+
+# run backend:
+cd backend
+docker build --no-cache -t f1-backend .
+docker run -p 8000:8000 f1-backend
+

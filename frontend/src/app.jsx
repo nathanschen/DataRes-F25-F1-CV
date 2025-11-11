@@ -1,20 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
 export default function App() {
-  const [youtubeURL, setYoutubeURL] = useState("");
+  const [videoFile, setVideoFile] = useState(null);
   const [videoURL, setVideoURL] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const videoRef = useRef(null);
+
+  // Load video when URL changes
+  useEffect(() => {
+    if (videoRef.current && videoURL) {
+      videoRef.current.load();
+    }
+  }, [videoURL]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith("video/")) {
+      setVideoFile(file);
+      // Create a local URL for immediate preview
+      const localURL = URL.createObjectURL(file);
+      setVideoURL(localURL);
+    } else {
+      alert("Please select a valid video file");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!youtubeURL) return;
+    if (!videoFile) return;
+    
+    setUploading(true);
     try {
-      const res = await axios.post("http://localhost:8000/api/analyze", {
-        youtube_url: youtubeURL,
+      const formData = new FormData();
+      formData.append("video", videoFile);
+
+      const res = await axios.post("http://localhost:8000/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
-      setVideoURL(res.data.video_url);
+      
+      // Update with server URL if needed
+      if (res.data.video_url) {
+        setVideoURL(res.data.video_url);
+      }
     } catch (err) {
       console.error(err);
+      alert("Error uploading video");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -23,29 +58,33 @@ export default function App() {
       <h1>🏎️ F1 Direction App (Prototype)</h1>
       <form onSubmit={handleSubmit}>
         <input
-          type="text"
-          placeholder="Paste YouTube URL"
-          value={youtubeURL}
-          onChange={(e) => setYoutubeURL(e.target.value)}
-          style={{ width: "400px", padding: "8px" }}
+          type="file"
+          accept="video/*"
+          onChange={handleFileChange}
+          style={{ padding: "8px" }}
         />
-        <button type="submit" style={{ marginLeft: "10px", padding: "8px" }}>
-          Submit
+        <button 
+          type="submit" 
+          style={{ marginLeft: "10px", padding: "8px" }}
+          disabled={!videoFile || uploading}
+        >
+          {uploading ? "Uploading..." : "Upload Video"}
         </button>
       </form>
 
       {videoURL && (
         <div style={{ marginTop: 40 }}>
-          <h3>Video:</h3>
-          <iframe
+          <h3>Video Player:</h3>
+          <video
+            ref={videoRef}
             width="720"
             height="405"
-            src={videoURL.replace("watch?v=", "embed/")}
-            title="YouTube video"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+            controls
+            style={{ backgroundColor: "#000" }}
+            src={videoURL}
+          >
+            Your browser does not support the video tag.
+          </video>
         </div>
       )}
     </div>
